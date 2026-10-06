@@ -6,34 +6,31 @@
 AFRIN (Applied Functions for R-based Intelligence and Nodes) is a
 geospatial analytics framework specifically designed for modern
 Geospatial Medicine, Spatial Epidemiology, and Healthcare Network
-Analysis (Business Process Reengineering).
+Analysis (Business Process Reengineering). Bypassing heavy third-party
+spatial dependencies, AFRIN utilizes mathematically rigorous Base R
+algorithms integrated seamlessly with core spatial engines (sf). It
+automatically outputs publication-ready, 4K diagnostic spatial profiles
+suitable for top-tier medical and public health journals.
 
-Bypassing heavy third-party spatial dependencies, AFRIN utilizes
-mathematically rigorous Base R algorithms integrated seamlessly with
-core spatial engines (sf). It automatically outputs publication-ready,
-4K diagnostic spatial profiles suitable for top-tier medical and public
-health journals.
+![A5_Teams](man/figures/A5.jpg) \# ✨ Key Features:
 
-<figure>
-<img src="man/figures/A5.jpg" alt="caption" />
-<figcaption aria-hidden="true">caption</figcaption>
-</figure>
-
-✨# Key Features: \* Zero-Dependency Core Computations: Performs complex
-spatial matrix algebra (e.g., Global/Local Moran’s I, Spatial Regression
-MLE, Regionalization) purely in Base R, ensuring extreme stability and
-preventing CRAN deprecation crashes. \* 4-Panel 4K Diagnostic Profiling:
-Every function automatically generates four high-resolution (4K)
-thematic and analytical plots, providing a complete 360-degree view of
-the spatial data (Base Maps, Statistical Distributions, Tactical
-Isolation Maps, and Significance Profiling). \* Intelligent
-Auto-Coercion & Clinical Topology Flags: Automatically rescues corrupt
-character data formats commonly found in government Shapefiles/DBFs, and
-flags topological errors (overlapping polygons/holes) before modeling
-begins. \* Strict Clinical Boundary Checks: Masks non-significant
-spatial clusters (p \> 0.05) or regression coefficients whose Confidence
-Intervals cross the null boundary, preventing false-alarm interventions
-and budget misallocation.
+- Zero-Dependency Core Computations: Performs complex spatial matrix
+  algebra (e.g., Global/Local Moran’s I, Spatial Regression MLE,
+  Regionalization) purely in Base R, ensuring extreme stability and
+  preventing CRAN deprecation crashes.
+- 4-Panel 4K Diagnostic Profiling: Every function automatically
+  generates four high-resolution (4K) thematic and analytical plots,
+  providing a complete 360-degree view of the spatial data (Base Maps,
+  Statistical Distributions, Tactical Isolation Maps, and Significance
+  Profiling).
+- Intelligent Auto-Coercion & Clinical Topology Flags: Automatically
+  rescues corrupt character data formats commonly found in government
+  Shapefiles/DBFs, and flags topological errors (overlapping
+  polygons/holes) before modeling begins.
+- Strict Clinical Boundary Checks: Masks non-significant spatial
+  clusters (p \> 0.05) or regression coefficients whose Confidence
+  Intervals cross the null boundary, preventing false-alarm
+  interventions and budget misallocation.
 
 # 👥 Authors / Contributors
 
@@ -60,10 +57,14 @@ and budget misallocation.
 
 # 🚀 Installation
 
-You can install the development version of AFKAR like so: 1. install
-[R](https://www.r-project.org/) 2. install
-[R-studio](https://posit.co/downloads) 3. install
-[Rtools](https://cran.r-project.org/bin/windows/Rtools/) \#windows
+You can install the development version of AFKAR like so:
+
+1.  install [R](https://www.r-project.org/)
+
+2.  install [R-studio](https://posit.co/downloads)
+
+3.  install [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+    \#windows
 
 install.packages(“devtools”)
 devtools::install_github(“Almanfaluthi/AFRIN”)
@@ -75,20 +76,25 @@ devtools::install_github(“Almanfaluthi/AFRIN”)
 - A2_mapping(): Epidemiological Choropleth & Empirical Bayes Smoothing
   (Addresses Small Area Estimation Bias).
 
-🛠️ Architecture & Modules (Spatial Autocorrelation & Nodes) \*
-B1_GlobalAutocorrelationMoranI(): Global Spatial Autocorrelation &
-Network Validation. \* B2_LocalIndicatorSpatialAssociation(): LISA
-Epicenter Detection & Outlier Isolation (Hotspot/Coldspot). \*
-B3_SpatialBufferDistanceDecay(): Healthcare Blank Spot Finder & Golden
-Hour Evaluator. \* B4_IntelligenceNodeFinder(): Syndemic Node
-Suitability & Hub-and-Spoke Network Allocator.
+# 🛠️ Architecture & Modules (Spatial Autocorrelation & Nodes)
 
-🛠️ Architecture & Modules (Explanatory Spatial Models & Space-Time) \*
-C1_SpatialRegression(): Spatial Lag Model (MLE) & Spillover Impact
-Profiler. \* C2_SpaceTimeHotSpot(): Spatiotemporal Propagation, Center
-of Gravity Trajectory, and Hovmöller Diagrams. \* C3_Regionalization():
-Spatially Constrained Syndemic Zoning (Modified Adjacency Penalty &
-hclust).
+- B1_GlobalAutocorrelationMoranI(): Global Spatial Autocorrelation &
+  Network Validation.
+- B2_LocalIndicatorSpatialAssociation(): LISA Epicenter Detection &
+  Outlier Isolation (Hotspot/Coldspot).
+- B3_SpatialBufferDistanceDecay(): Healthcare Blank Spot Finder & Golden
+  Hour Evaluator.
+- B4_IntelligenceNodeFinder(): Syndemic Node Suitability & Hub-and-Spoke
+  Network Allocator.
+
+# 🛠️ Architecture & Modules (Explanatory Spatial Models & Space-Time)
+
+- C1_SpatialRegression(): Spatial Lag Model (MLE) & Spillover Impact
+  Profiler.
+- C2_SpaceTimeHotSpot(): Spatiotemporal Propagation, Center of Gravity
+  Trajectory, and Hovmöller Diagrams.
+- C3_Regionalization(): Spatially Constrained Syndemic Zoning (Modified
+  Adjacency Penalty & hclust).
 
 📖 Example This is a basic example which shows you how to deploy AFRIN’s
 Geospatial Medicine modules:
@@ -115,17 +121,6 @@ A2_mapping(spatial_data = df_jateng, cases_col = "MALARIA", pop_col = "AREA", sm
 <img src="man/figures/README-example-2.png" width="100%" /><img src="man/figures/README-example-3.png" width="100%" /><img src="man/figures/README-example-4.png" width="100%" /><img src="man/figures/README-example-5.png" width="100%" />
 
     #> AFRIN Note: Local Indicator of Spatial Association completed.
-    # C1: Spatial Regression (Lag Model)
-    # Measures the direct effect of population density on Leptospirosis, plus the indirect spillover effect from neighboring districts
-    C1_SpatialRegression(spatial_data = df_jateng, formula = MALARIA ~ DHF, save_plot = FALSE)
-    #> Warning: AFRIN Warning: Variable MALARIA is not numeric. Auto-coercing...
-    #> Warning: AFRIN Warning: Variable DHF is not numeric. Auto-coercing...
-    #> AFRIN Note: Building Spatial Weights Matrix...
-    #> AFRIN Note: Optimizing Spatial Lag Parameter (MLE)...
-
-<img src="man/figures/README-example-6.png" width="100%" /><img src="man/figures/README-example-7.png" width="100%" /><img src="man/figures/README-example-8.png" width="100%" /><img src="man/figures/README-example-9.png" width="100%" />
-
-    #> AFRIN Note: Spatial Regression (SLM) via MLE completed successfully.
 
 🤝 Contributing Contributions, issues, and feature requests are welcome!
 Feel free to check the issues page. If you are using AFRIN for your
