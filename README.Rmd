@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 AFRIN (Applied Functions for R-based Intelligence and Nodes) is a geospatial analytics framework specifically designed for modern Geospatial Medicine, Spatial Epidemiology, and Healthcare Network Analysis (Business Process Reengineering). Bypassing heavy third-party spatial dependencies, AFRIN utilizes mathematically rigorous Base R algorithms integrated seamlessly with core spatial engines (sf). It automatically outputs publication-ready, 4K diagnostic spatial profiles suitable for top-tier medical and public health journals.
 
 ![A5_Teams](man/figures/A5.jpg)
+
 # ✨ Key Features:
 
 * Zero-Dependency Core Computations: Performs complex spatial matrix algebra (e.g., Global/Local Moran's I, Spatial Regression MLE, Regionalization) purely in Base R, ensuring extreme stability and preventing CRAN deprecation crashes.
@@ -43,8 +44,9 @@ You can install the development version of AFKAR like so:
 
 3. install [Rtools](https://cran.r-project.org/bin/windows/Rtools/) #windows
 
-install.packages("devtools")
-devtools::install_github("Almanfaluthi/AFRIN")
+4. install.packages("devtools") #paste in your console (lower left)
+
+5. devtools::install_github("Almanfaluthi/AFRIN") #paste in your console (lower left)
 
 # 🛠️ Architecture & Modules (Spatial Foundation & Mapping)
 * A1_loadspatial(): Universal Spatial Data Loader & 4-Stage Profiler (Geometry, Toplogy, Extent, Attribute).

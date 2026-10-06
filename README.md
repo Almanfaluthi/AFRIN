@@ -12,7 +12,12 @@ algorithms integrated seamlessly with core spatial engines (sf). It
 automatically outputs publication-ready, 4K diagnostic spatial profiles
 suitable for top-tier medical and public health journals.
 
-![A5_Teams](man/figures/A5.jpg) \# ✨ Key Features:
+<figure>
+<img src="man/figures/A5.jpg" alt="A5_Teams" />
+<figcaption aria-hidden="true">A5_Teams</figcaption>
+</figure>
+
+# ✨ Key Features:
 
 - Zero-Dependency Core Computations: Performs complex spatial matrix
   algebra (e.g., Global/Local Moran’s I, Spatial Regression MLE,
@@ -66,8 +71,10 @@ You can install the development version of AFKAR like so:
 3.  install [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
     \#windows
 
-install.packages(“devtools”)
-devtools::install_github(“Almanfaluthi/AFRIN”)
+4.  install.packages(“devtools”) \#paste in your console (lower left)
+
+5.  devtools::install_github(“Almanfaluthi/AFRIN”) \#paste in your
+    console (lower left)
 
 # 🛠️ Architecture & Modules (Spatial Foundation & Mapping)
 
