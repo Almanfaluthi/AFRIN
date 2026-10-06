@@ -1,207 +1,236 @@
-#' @title Spatial Choropleth Mapping with Empirical Bayes Smoothing and Unified Legends
+#' @title Epidemiological Choropleth Mapping and Empirical Bayes Smoothing
+#' @description Generates high-resolution spatial disease maps. Supports raw disease
+#' burden mapping for logistical planning, and Empirical Bayes Smoothing to correct
+#' extreme variance (crude rate bias) in small-area populations. Automatically
+#' coercing character data types to numeric to prevent shapefile DBF reading errors.
 #'
-#' @description
-#' Generates high-resolution 4K spatial choropleth maps for disease incidence.
-#' Implements a dual-panel layout comparing Raw Incidence Rates against
-#' Global Empirical Bayes (EB) Smoothed Rates. Features RColorBrewer integration,
-#' dynamic legend orientations, and unified color scaling for epidemiological accuracy.
+#' @param spatial_data An object of class 'sf' containing polygon geometries.
+#' @param cases_col Character. The column name representing the number of cases.
+#' @param pop_col Character. The column name representing the population. Required if smoothing = TRUE.
+#' @param smoothing Logical. If TRUE, applies Global Empirical Bayes smoothing and returns 4 diagnostic maps.
+#' @param rate_multiplier Numeric. Multiplier for the rates (e.g., 100000 for per 100,000 population).
+#' @param color_palette Character. Name of the RColorBrewer palette (default: "YlOrRd").
+#' @param reverse_palette Logical. If TRUE, reverses the color palette vector.
+#' @param legend Logical. If TRUE, displays the legend.
+#' @param legend_position Character. Legend position (default: "bottom").
+#' @param legend_orientation Character. "vertical" or "horizontal" for legend layout.
+#' @param footer Logical. If TRUE, adds a reproducible footer at the bottom center.
+#' @param save_plot Logical. If TRUE, saves the plot(s) as high-resolution 4K PNGs.
+#' @param save_prefix Character. Prefix for output files.
+#' @param res Numeric. Resolution in DPI for the saved plot (default is 300).
 #'
-#' @param map_data An \code{sf} spatial data frame containing polygons.
-#' @param cases_col Character string. The column name containing disease event counts.
-#' @param pop_col Character string. The column name containing population base.
-#' @param smoothing Logical. If \code{TRUE}, applies Empirical Bayes smoothing. Default is \code{TRUE}.
-#' @param auto_colour Character string. Name of an RColorBrewer palette (e.g., "YlOrRd"). If \code{NULL}, uses manual color_palette. Default is \code{NULL}.
-#' @param color_palette Character vector of manual colors. Used if auto_colour is \code{NULL}. Default is a custom clinical red palette.
-#' @param reverse_palette Logical. If \code{TRUE}, reverses the color palette array. Default is \code{FALSE}.
-#' @param show_legend Logical. If \code{TRUE}, displays a legend on the maps. Default is \code{TRUE}.
-#' @param legend_pos Character string. Position of the legend (e.g., "bottomright", "topleft", "bottom"). Default is "bottomright".
-#' @param legend_orientation Character string. "vertical" or "horizontal". Default is "vertical".
-#' @param common_legend Logical. If \code{TRUE} and smoothing is \code{TRUE}, applies a unified scale and single legend. Default is \code{FALSE}.
-#' @param footer Logical. If \code{TRUE}, adds a reproducible timestamp footer. Default is \code{TRUE}.
-#' @param save_plot Logical. If \code{TRUE}, exports the plot in locked 4K resolution (3840x2160). Default is \code{FALSE}.
-#' @param res Numeric. Resolution (DPI) for the exported plot. Default is 300. Can be increased for journal submission.
-#' @param save_prefix Character string. Prefix for the exported file name. Default is "AFRIN".
-#'
-#' @return A base R plot is rendered. If \code{save_plot = TRUE}, a 4K PNG file is written to the working directory.
-#'
+#' @return The original 'sf' object appended with calculated epidemiological metrics
+#' (Crude_Rate, Expected_Cases, SMR, EB_Smoothed_Rate) invisibly.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#'   A2_mapping(
-#'     map_data = nc,
-#'     cases_col = "SID74",
-#'     pop_col = "BIR74",
-#'     smoothing = TRUE,
-#'     auto_colour = "YlOrRd",
-#'     show_legend = TRUE,
-#'     legend_pos = "bottom",
-#'     legend_orientation = "horizontal",
-#'     common_legend = TRUE,
-#'     save_plot = FALSE
-#'   )
+#' # Example: Mapping Malaria with Auto-Coercion on character columns
+#' mapped_smooth <- A2_mapping(
+#'   spatial_data = df_jateng,
+#'   cases_col = "MALARIA",
+#'   pop_col = "AREA",
+#'   smoothing = TRUE,
+#'   legend = TRUE,
+#'   legend_position = "bottomleft",
+#'   legend_orientation = "vertical",
+#'   save_plot = TRUE,
+#'   save_prefix = "Malaria_EB_Smoothed"
+#' )
 #' }
-A2_mapping <- function(map_data,
-                             cases_col,
-                             pop_col,
-                             smoothing = TRUE,
-                             auto_colour = NULL,
-                             color_palette = c("#FFF5F0", "#FB6A4A", "#CB181D", "#67000D"),
-                             reverse_palette = FALSE,
-                             show_legend = TRUE,
-                             legend_pos = "bottomright",
-                             legend_orientation = "vertical",
-                             common_legend = FALSE,
-                             footer = TRUE,
-                             save_plot = FALSE,
-                             res = 300,
-                             save_prefix = "AFRIN") {
+A2_mapping <- function(spatial_data,
+                       cases_col,
+                       pop_col = NULL,
+                       smoothing = TRUE,
+                       rate_multiplier = 100000,
+                       color_palette = "YlOrRd",
+                       reverse_palette = FALSE,
+                       legend = TRUE,
+                       legend_position = "bottomleft",
+                       legend_orientation = "vertical",
+                       footer = TRUE,
+                       save_plot = FALSE,
+                       save_prefix = "A2_mapping",
+                       res = 300) {
 
-  # 1. Dependency & Input Validation
+  # 1. Strict Input Validation & Engine Check
   if (!requireNamespace("sf", quietly = TRUE)) {
-    stop("CRITICAL ERROR: Package 'sf' is required to plot spatial polygons.")
+    stop("AFRIN Error: Package 'sf' is required. Please install it.", call. = FALSE)
   }
-  stopifnot("cases_col must be a character string" = is.character(cases_col))
-  stopifnot("pop_col must be a character string" = is.character(pop_col))
-
-  # Legend orientation logic
-  is_horiz <- if (legend_orientation == "horizontal") TRUE else FALSE
-
-  # 2. Extract Data
-  O_i <- as.numeric(map_data[[cases_col]])
-  N_i <- as.numeric(map_data[[pop_col]])
-
-  if (any(N_i == 0, na.rm = TRUE)) {
-    warning("Clinical Warning: Regions with zero population detected. Replaced with 1 to avoid Inf.")
-    N_i[N_i == 0 & !is.na(N_i)] <- 1
+  if (!inherits(spatial_data, "sf")) {
+    stop("AFRIN Error: 'spatial_data' must be an 'sf' object.", call. = FALSE)
+  }
+  if (!(cases_col %in% names(spatial_data))) {
+    stop(paste("AFRIN Error: Column", cases_col, "not found in spatial_data."), call. = FALSE)
   }
 
-  # 3. Calculate Rates
-  raw_rate <- (O_i / N_i) * 1000
+  # 2. Auto-Coercion Engine for Cases Column
+  cases_raw <- spatial_data[[cases_col]]
+  if (!is.numeric(cases_raw)) {
+    warning(paste("AFRIN Warning: 'cases_col' (", cases_col, ") is not numeric. Auto-coercing to numeric..."), call. = FALSE)
+    cases_num <- suppressWarnings(as.numeric(as.character(cases_raw)))
 
+    na_diff <- sum(is.na(cases_num) & !is.na(cases_raw))
+    if (na_diff > 0) {
+      warning(paste("AFRIN Warning: Coercion introduced NAs in", na_diff, "rows (possibly string text). Treating them as 0 for epidemiological conservatism."), call. = FALSE)
+    }
+    cases_num[is.na(cases_num)] <- 0
+    spatial_data[[cases_col]] <- cases_num
+  } else {
+    cases_raw[is.na(cases_raw)] <- 0
+    spatial_data[[cases_col]] <- cases_raw
+  }
+
+  # 3. Epidemiological Math & Empirical Bayes Calculation
   if (smoothing) {
-    m <- sum(O_i, na.rm = TRUE) / sum(N_i, na.rm = TRUE)
-    s2 <- stats::var(raw_rate / 1000, na.rm = TRUE)
-    mean_N <- mean(N_i, na.rm = TRUE)
+    if (is.null(pop_col) || !(pop_col %in% names(spatial_data))) {
+      stop("AFRIN Error: 'pop_col' is required and must exist in spatial_data when smoothing = TRUE.", call. = FALSE)
+    }
 
-    a <- s2 - (m / mean_N)
+    # Auto-Coercion Engine for Population Column
+    pop_raw <- spatial_data[[pop_col]]
+    if (!is.numeric(pop_raw)) {
+      warning(paste("AFRIN Warning: 'pop_col' (", pop_col, ") is not numeric. Auto-coercing to numeric..."), call. = FALSE)
+      pop_num <- suppressWarnings(as.numeric(as.character(pop_raw)))
+
+      na_diff_pop <- sum(is.na(pop_num) & !is.na(pop_raw))
+      if (na_diff_pop > 0) {
+        warning(paste("AFRIN Warning: Coercion introduced NAs in 'pop_col' in", na_diff_pop, "rows. Treating them as 1 to prevent division by zero."), call. = FALSE)
+      }
+      pop_num[is.na(pop_num) | pop_num <= 0] <- 1
+      spatial_data[[pop_col]] <- pop_num
+    } else {
+      pop_raw[is.na(pop_raw) | pop_raw <= 0] <- 1
+      spatial_data[[pop_col]] <- pop_raw
+    }
+
+    cases <- spatial_data[[cases_col]]
+    pop <- spatial_data[[pop_col]]
+
+    # Global metrics
+    total_cases <- sum(cases, na.rm = TRUE)
+    total_pop <- sum(pop, na.rm = TRUE)
+    global_rate <- total_cases / total_pop
+
+    # Crude Rate & Expected Cases
+    crude_rate <- cases / pop
+    expected_cases <- pop * global_rate
+    smr <- ifelse(expected_cases == 0, 0, cases / expected_cases)
+
+    # Global Empirical Bayes (Marshall 1991) using Base R stats
+    variance_crude <- stats::var(crude_rate, na.rm = TRUE)
+    mean_pop <- mean(pop, na.rm = TRUE)
+
+    # Calculate prior variance (a)
+    a <- variance_crude - (global_rate / mean_pop)
     if (is.na(a) || a < 0) a <- 0
 
-    w_i <- a / (a + (m / N_i))
-    eb_rate <- (w_i * (raw_rate / 1000) + (1 - w_i) * m) * 1000
-  } else {
-    eb_rate <- raw_rate
+    # Calculate shrinkage weight (w) and EB Smoothed Rate
+    w <- a / (a + (global_rate / pop))
+    eb_rate <- (w * crude_rate) + ((1 - w) * global_rate)
+
+    # Append to sf object
+    spatial_data[["Crude_Rate"]] <- crude_rate * rate_multiplier
+    spatial_data[["Expected_Cases"]] <- expected_cases
+    spatial_data[["SMR"]] <- smr
+    spatial_data[["EB_Smoothed_Rate"]] <- eb_rate * rate_multiplier
   }
 
-  # 4. Automated Color Palette Logic
-  n_colors <- 5
-  if (!is.null(auto_colour)) {
-    if (!requireNamespace("RColorBrewer", quietly = TRUE)) {
-      warning("Package 'RColorBrewer' is not installed. Falling back to manual color_palette.")
-      colors_mapped <- grDevices::colorRampPalette(color_palette)(n_colors)
-    } else {
-      colors_mapped <- RColorBrewer::brewer.pal(n = n_colors, name = auto_colour)
-    }
-  } else {
-    colors_mapped <- grDevices::colorRampPalette(color_palette)(n_colors)
-  }
+  # 4. High-Res Visualization Setup
+  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  footer_text <- paste0("Generated by R-Studio (", R.version.string, ") on ", format(Sys.time(), "%B %d, %Y at %H:%M:%S"))
 
+  # Color Palette Setup
+  pal_colors <- NULL
+  if (requireNamespace("RColorBrewer", quietly = TRUE) &&
+      color_palette %in% rownames(RColorBrewer::brewer.pal.info)) {
+    n_col <- RColorBrewer::brewer.pal.info[color_palette, "maxcolors"]
+    pal_colors <- RColorBrewer::brewer.pal(n_col, color_palette)
+  } else {
+    pal_colors <- grDevices::heat.colors(7)
+  }
   if (reverse_palette) {
-    colors_mapped <- rev(colors_mapped)
+    pal_colors <- rev(pal_colors)
   }
+  pal_generator <- grDevices::colorRampPalette(pal_colors)
 
-  # 5. Break Intervals & Unified Scale Logic
-  if (common_legend && smoothing) {
-    # Combine data to create a unified global scale
-    combined_rates <- c(raw_rate, eb_rate)
-    global_breaks <- stats::quantile(combined_rates, probs = seq(0, 1, length.out = n_colors + 1), na.rm = TRUE)
+  # Internal function to generate choropleth map cleanly
+  plot_choropleth <- function(var_name, title, suffix) {
 
-    raw_cut <- cut(raw_rate, breaks = global_breaks, include.lowest = TRUE)
-    eb_cut <- cut(eb_rate, breaks = global_breaks, include.lowest = TRUE)
-
-    color_idx_raw <- as.integer(raw_cut)
-    color_idx_eb <- as.integer(eb_cut)
-    legend_labels <- levels(raw_cut)
-
-  } else {
-    # Individual scales
-    raw_breaks <- stats::quantile(raw_rate, probs = seq(0, 1, length.out = n_colors + 1), na.rm = TRUE)
-    raw_cut <- cut(raw_rate, breaks = raw_breaks, include.lowest = TRUE)
-    color_idx_raw <- as.integer(raw_cut)
-    raw_legend_labels <- levels(raw_cut)
-
-    if (smoothing) {
-      eb_breaks <- stats::quantile(eb_rate, probs = seq(0, 1, length.out = n_colors + 1), na.rm = TRUE)
-      eb_cut <- cut(eb_rate, breaks = eb_breaks, include.lowest = TRUE)
-      color_idx_eb <- as.integer(eb_cut)
-      eb_legend_labels <- levels(eb_cut)
+    if (save_plot) {
+      filename <- paste0(save_prefix, "_A2_mapping_", timestamp, "_", suffix, ".png")
+      grDevices::png(filename = filename, width = 3840, height = 2160, res = res)
     }
-  }
 
-  # 6. Plotting Engine (High-Res 4K Ready with strict margins)
-  old_par <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(old_par))
+    old_par <- graphics::par(no.readonly = TRUE)
+    # Outer margins strategy to prevent overlap with footer and legends
+    oma_bottom <- ifelse(footer, 6, 2)
+    graphics::par(oma = c(oma_bottom, 2, 3, 2), mar = c(2, 2, 2, 2))
 
-  if (smoothing) {
-    # mar = margins of individual plots, oma = outer margins for the footer/legends
-    graphics::par(mfrow = c(1, 2), mar = c(4, 4, 4, 2) + 0.1, oma = c(5, 0, 0, 0), xpd = TRUE)
-  } else {
-    graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 2) + 0.1, oma = c(5, 0, 0, 0), xpd = TRUE)
-  }
+    vals <- spatial_data[[var_name]]
 
-  # Plot Left: Raw Data
-  graphics::plot(sf::st_geometry(map_data),
-                 col = colors_mapped[color_idx_raw],
-                 main = "Raw Incidence Rate\n(per 1,000 population)",
-                 border = "darkgrey")
-
-  # Draw separate legend for raw data if NOT using common legend
-  if (show_legend && (!common_legend || !smoothing)) {
-    graphics::legend(legend_pos, legend = raw_legend_labels, fill = colors_mapped,
-                     title = "Raw Rate", bty = "n", cex = 0.8, inset = 0.05, horiz = is_horiz)
-  }
-
-  # Plot Right: Smoothed Data
-  if (smoothing) {
-    graphics::plot(sf::st_geometry(map_data),
-                   col = colors_mapped[color_idx_eb],
-                   main = "Empirical Bayes Smoothed Rate\n(Adjusted Risk)",
-                   border = "darkgrey")
-
-    # Draw either the common legend or the specific EB legend on the right plot
-    if (show_legend) {
-      if (common_legend) {
-        graphics::legend(legend_pos, legend = legend_labels, fill = colors_mapped,
-                         title = "Unified Rate (per 1,000)", bty = "n", cex = 0.8, inset = 0.05, horiz = is_horiz)
+    # Quantile binning for choropleth
+    if (length(unique(vals[!is.na(vals)])) > 1) {
+      breaks <- unique(stats::quantile(vals, probs = seq(0, 1, length.out = 6), na.rm = TRUE))
+      if (length(breaks) > 1) {
+        cats <- cut(vals, breaks = breaks, include.lowest = TRUE)
+        colors_mapped <- pal_generator(length(levels(cats)))[as.numeric(cats)]
+        legend_labels <- levels(cats)
+        legend_colors <- pal_generator(length(levels(cats)))
       } else {
-        graphics::legend(legend_pos, legend = eb_legend_labels, fill = colors_mapped,
-                         title = "EB Rate", bty = "n", cex = 0.8, inset = 0.05, horiz = is_horiz)
+        colors_mapped <- rep(pal_colors[length(pal_colors)], length(vals))
+        legend_labels <- "Homogeneous"
+        legend_colors <- pal_colors[length(pal_colors)]
       }
+    } else {
+      colors_mapped <- rep(pal_colors[length(pal_colors)], length(vals))
+      legend_labels <- "Homogeneous/Zero"
+      legend_colors <- pal_colors[length(pal_colors)]
     }
+
+    # Plot Base Geometry
+    graphics::plot(sf::st_geometry(spatial_data), col = colors_mapped,
+                   border = "#555555", lwd = 0.5)
+    graphics::title(main = title, outer = TRUE, line = 0, cex.main = 1.5)
+
+    # Legend Placement if TRUE
+    if (legend) {
+      horiz <- ifelse(legend_orientation == "horizontal", TRUE, FALSE)
+      graphics::legend(legend_position, legend = legend_labels, fill = legend_colors,
+                       title = var_name, bty = "n", horiz = horiz, cex = 0.9, xpd = NA)
+    }
+
+    # Strict Footer Placement (Bottom Center)
+    if (footer) {
+      graphics::mtext(footer_text, side = 1, line = 4, adj = 0.5,
+                      outer = TRUE, col = "darkgray", cex = 0.8)
+    }
+
+    if (save_plot) {
+      grDevices::dev.off()
+      message(paste("AFRIN Note: 4K Plot saved ->", paste0(save_prefix, "_A2_mapping_", timestamp, "_", suffix, ".png")))
+    }
+
+    graphics::par(old_par)
   }
 
-  # 7. Reproducibility Footer (Strict Center Align)
-  if (footer) {
-    footer_text <- paste0("Generated by R-Studio (", R.version.string, ") on ", format(Sys.time(), "%B %d, %Y at %H:%M:%S"))
-    graphics::mtext(footer_text, side = 1, line = 4, outer = TRUE, adj = 0.5, cex = 0.8, col = "black")
+  # 5. Generate 1 or 4 4K Plots based on smoothing parameter
+  if (!smoothing) {
+    # 1 Plot Only: Raw Volume
+    plot_choropleth(cases_col, "Raw Disease Burden / Case Volume", "1_RawCases")
+  } else {
+    # 4 Panel Profiling for Spatial Epi
+    plot_choropleth(cases_col, "Raw Disease Burden (Count)", "1_RawCases")
+
+    rate_title <- paste0("Crude Rate (per ", format(rate_multiplier, scientific = FALSE), ")")
+    plot_choropleth("Crude_Rate", rate_title, "2_CrudeRate")
+
+    eb_title <- paste0("Empirical Bayes Smoothed Rate (per ", format(rate_multiplier, scientific = FALSE), ")")
+    plot_choropleth("EB_Smoothed_Rate", eb_title, "3_EBSmoothedRate")
+
+    plot_choropleth("SMR", "Standardized Morbidity/Mortality Ratio (SMR > 1.0 indicates excess risk)", "4_SMR")
   }
 
-  # 8. Locked 4K High-Resolution Export Module with Adjustable DPI
-  if (save_plot) {
-    stamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-    rand_code <- paste0(sample(LETTERS, 4, replace = TRUE), collapse = "")
-    file_name <- paste0(save_prefix, "_A2_mapping_", stamp, "_", rand_code, ".png")
-
-    # Force 3840x2160, but inject the user-defined `res`
-    grDevices::dev.copy(grDevices::png,
-                        filename = file_name,
-                        width = 3840,
-                        height = 2160,
-                        res = res)
-    grDevices::dev.off()
-
-    message(paste("SUCCESS:", file_name, "has been exported in 4K resolution at", res, "DPI."))
-  }
-
-  invisible(data.frame(Raw_Rate = raw_rate, EB_Smoothed_Rate = eb_rate))
+  message("AFRIN Note: Mapping complete. Variables auto-coerced (if needed) and appended successfully.")
+  return(invisible(spatial_data))
 }

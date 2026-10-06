@@ -2,69 +2,71 @@
 % Please edit documentation in R/B2_LocalIndicatorSpatialAssociation.R
 \name{B2_LocalIndicatorSpatialAssociation}
 \alias{B2_LocalIndicatorSpatialAssociation}
-\title{Local Indicator of Spatial Association (LISA) Analysis}
+\title{Local Indicator of Spatial Association (LISA) / Local Moran's I}
 \usage{
 B2_LocalIndicatorSpatialAssociation(
-  map_data,
+  spatial_data,
   var_col,
-  sig_level = 0.05,
-  auto_colour = "YlOrRd",
+  nsim = 999,
+  p_threshold = 0.05,
+  color_palette = "YlOrRd",
   reverse_palette = FALSE,
-  show_legend = TRUE,
+  legend = TRUE,
+  legend_position = "bottom",
   legend_orientation = "vertical",
-  common_legend = FALSE,
   footer = TRUE,
   save_plot = FALSE,
-  res = 300,
-  save_prefix = "B2"
+  save_prefix = "B2_LISA",
+  res = 300
 )
 }
 \arguments{
-\item{map_data}{An \code{sf} spatial data frame containing polygons.}
+\item{spatial_data}{An object of class 'sf' containing polygon geometries.}
 
-\item{var_col}{Character string. The column name containing the clinical variable.}
+\item{var_col}{Character. The column name of the variable to analyze.}
 
-\item{sig_level}{Numeric. The p-value threshold for significance. Default is 0.05.}
+\item{nsim}{Numeric. Number of Monte Carlo permutations for pseudo p-value (default: 999).}
 
-\item{auto_colour}{Character string. Name of an RColorBrewer palette. Default is "YlOrRd".}
+\item{p_threshold}{Numeric. The significance threshold for clinical masking (default: 0.05).}
 
-\item{reverse_palette}{Logical. If \code{TRUE}, reverses the color palette. Default is \code{FALSE}.}
+\item{color_palette}{Character. Not heavily used here as LISA uses fixed clinical colors, but kept for compatibility.}
 
-\item{show_legend}{Logical. If \code{TRUE}, displays legends on the maps. Default is \code{TRUE}.}
+\item{reverse_palette}{Logical. If TRUE, reverses the generic palette.}
 
-\item{legend_orientation}{Character string. "vertical" or "horizontal". Default is "vertical".}
+\item{legend}{Logical. If TRUE, displays legends on applicable plots.}
 
-\item{common_legend}{Logical. If \code{TRUE}, uses a layout matrix to build a single unified legend. Default is \code{FALSE}.}
+\item{legend_position}{Character. Legend position (default: "bottom").}
 
-\item{footer}{Logical. If \code{TRUE}, adds a reproducible timestamp footer. Default is \code{TRUE}.}
+\item{legend_orientation}{Character. "vertical" or "horizontal" for legend layout.}
 
-\item{save_plot}{Logical. If \code{TRUE}, exports TWO plots in locked 4K resolution (3840x2160). Default is \code{FALSE}.}
+\item{footer}{Logical. If TRUE, adds a reproducible footer at the bottom center.}
 
-\item{res}{Numeric. Resolution (DPI) for the exported plots. Default is 300.}
+\item{save_plot}{Logical. If TRUE, copies the viewer plots to high-resolution 4K PNGs.}
 
-\item{save_prefix}{Character string. Prefix for the exported file names. Default is "B2".}
+\item{save_prefix}{Character. Prefix for output files.}
+
+\item{res}{Numeric. Resolution in DPI for the saved plot (default is 300).}
 }
 \value{
-A list containing LISA statistics, Quadrant classifications, and p-values.
-Generates two 4K visualizations in the active graphics device.
+A list containing the Local Moran statistics and the original 'sf'
+object appended with Local_I, p_value, and LISA_Cluster invisibly.
 }
 \description{
-Conducts Local Moran's I spatial autocorrelation to identify exact locations
-of spatial clusters and outliers. Generates two 1x2 4K high-resolution panels:
-Image 1: Outbreak Mitigation (LISA Cluster Map & Significance Map).
-Image 2: Statistical Diagnostic (Local Moran Scatterplot & Raw Magnitude Map).
-Incorporates strict layout matrices for unified legends and robust outer margins.
+Computes Local Moran's I to detect precise spatial epicenters
+(Hotspots/Coldspots) and Spatial Outliers. Includes a strict clinical boundary
+check that masks non-significant clusters (p > 0.05) to prevent false-alarm
+interventions. Automatically generates a 4-panel high-resolution diagnostic profile.
 }
 \examples{
 \dontrun{
-  # Execute LISA analysis with horizontal common legend using strict layout
-  results <- B2_LocalIndicatorSpatialAssociation(
-    map_data = nc,
-    var_col = "SID74",
-    sig_level = 0.05,
-    legend_orientation = "horizontal",
-    common_legend = TRUE,
-    save_plot = FALSE
-  )
+# Example: Detecting Malaria Epicenters
+lisa_results <- B2_LocalIndicatorSpatialAssociation(
+  spatial_data = df_jateng,
+  var_col = "MALARIA",
+  nsim = 999,
+  p_threshold = 0.05,
+  save_plot = TRUE,
+  save_prefix = "Malaria_LISA"
+)
 }
 }

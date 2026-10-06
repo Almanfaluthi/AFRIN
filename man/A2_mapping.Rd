@@ -2,79 +2,77 @@
 % Please edit documentation in R/A2_mapping.R
 \name{A2_mapping}
 \alias{A2_mapping}
-\title{Spatial Choropleth Mapping with Empirical Bayes Smoothing and Unified Legends}
+\title{Epidemiological Choropleth Mapping and Empirical Bayes Smoothing}
 \usage{
 A2_mapping(
-  map_data,
+  spatial_data,
   cases_col,
-  pop_col,
+  pop_col = NULL,
   smoothing = TRUE,
-  auto_colour = NULL,
-  color_palette = c("#FFF5F0", "#FB6A4A", "#CB181D", "#67000D"),
+  rate_multiplier = 1e+05,
+  color_palette = "YlOrRd",
   reverse_palette = FALSE,
-  show_legend = TRUE,
-  legend_pos = "bottomright",
+  legend = TRUE,
+  legend_position = "bottomleft",
   legend_orientation = "vertical",
-  common_legend = FALSE,
   footer = TRUE,
   save_plot = FALSE,
-  res = 300,
-  save_prefix = "AFRIN"
+  save_prefix = "A2_mapping",
+  res = 300
 )
 }
 \arguments{
-\item{map_data}{An \code{sf} spatial data frame containing polygons.}
+\item{spatial_data}{An object of class 'sf' containing polygon geometries.}
 
-\item{cases_col}{Character string. The column name containing disease event counts.}
+\item{cases_col}{Character. The column name representing the number of cases.}
 
-\item{pop_col}{Character string. The column name containing population base.}
+\item{pop_col}{Character. The column name representing the population. Required if smoothing = TRUE.}
 
-\item{smoothing}{Logical. If \code{TRUE}, applies Empirical Bayes smoothing. Default is \code{TRUE}.}
+\item{smoothing}{Logical. If TRUE, applies Global Empirical Bayes smoothing and returns 4 diagnostic maps.}
 
-\item{auto_colour}{Character string. Name of an RColorBrewer palette (e.g., "YlOrRd"). If \code{NULL}, uses manual color_palette. Default is \code{NULL}.}
+\item{rate_multiplier}{Numeric. Multiplier for the rates (e.g., 100000 for per 100,000 population).}
 
-\item{color_palette}{Character vector of manual colors. Used if auto_colour is \code{NULL}. Default is a custom clinical red palette.}
+\item{color_palette}{Character. Name of the RColorBrewer palette (default: "YlOrRd").}
 
-\item{reverse_palette}{Logical. If \code{TRUE}, reverses the color palette array. Default is \code{FALSE}.}
+\item{reverse_palette}{Logical. If TRUE, reverses the color palette vector.}
 
-\item{show_legend}{Logical. If \code{TRUE}, displays a legend on the maps. Default is \code{TRUE}.}
+\item{legend}{Logical. If TRUE, displays the legend.}
 
-\item{legend_pos}{Character string. Position of the legend (e.g., "bottomright", "topleft", "bottom"). Default is "bottomright".}
+\item{legend_position}{Character. Legend position (default: "bottom").}
 
-\item{legend_orientation}{Character string. "vertical" or "horizontal". Default is "vertical".}
+\item{legend_orientation}{Character. "vertical" or "horizontal" for legend layout.}
 
-\item{common_legend}{Logical. If \code{TRUE} and smoothing is \code{TRUE}, applies a unified scale and single legend. Default is \code{FALSE}.}
+\item{footer}{Logical. If TRUE, adds a reproducible footer at the bottom center.}
 
-\item{footer}{Logical. If \code{TRUE}, adds a reproducible timestamp footer. Default is \code{TRUE}.}
+\item{save_plot}{Logical. If TRUE, saves the plot(s) as high-resolution 4K PNGs.}
 
-\item{save_plot}{Logical. If \code{TRUE}, exports the plot in locked 4K resolution (3840x2160). Default is \code{FALSE}.}
+\item{save_prefix}{Character. Prefix for output files.}
 
-\item{res}{Numeric. Resolution (DPI) for the exported plot. Default is 300. Can be increased for journal submission.}
-
-\item{save_prefix}{Character string. Prefix for the exported file name. Default is "AFRIN".}
+\item{res}{Numeric. Resolution in DPI for the saved plot (default is 300).}
 }
 \value{
-A base R plot is rendered. If \code{save_plot = TRUE}, a 4K PNG file is written to the working directory.
+The original 'sf' object appended with calculated epidemiological metrics
+(Crude_Rate, Expected_Cases, SMR, EB_Smoothed_Rate) invisibly.
 }
 \description{
-Generates high-resolution 4K spatial choropleth maps for disease incidence.
-Implements a dual-panel layout comparing Raw Incidence Rates against
-Global Empirical Bayes (EB) Smoothed Rates. Features RColorBrewer integration,
-dynamic legend orientations, and unified color scaling for epidemiological accuracy.
+Generates high-resolution spatial disease maps. Supports raw disease
+burden mapping for logistical planning, and Empirical Bayes Smoothing to correct
+extreme variance (crude rate bias) in small-area populations. Automatically
+coercing character data types to numeric to prevent shapefile DBF reading errors.
 }
 \examples{
 \dontrun{
-  A2_mapping(
-    map_data = nc,
-    cases_col = "SID74",
-    pop_col = "BIR74",
-    smoothing = TRUE,
-    auto_colour = "YlOrRd",
-    show_legend = TRUE,
-    legend_pos = "bottom",
-    legend_orientation = "horizontal",
-    common_legend = TRUE,
-    save_plot = FALSE
-  )
+# Example: Mapping Malaria with Auto-Coercion on character columns
+mapped_smooth <- A2_mapping(
+  spatial_data = df_jateng,
+  cases_col = "MALARIA",
+  pop_col = "AREA",
+  smoothing = TRUE,
+  legend = TRUE,
+  legend_position = "bottomleft",
+  legend_orientation = "vertical",
+  save_plot = TRUE,
+  save_prefix = "Malaria_EB_Smoothed"
+)
 }
 }

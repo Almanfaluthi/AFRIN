@@ -2,76 +2,72 @@
 % Please edit documentation in R/B1_GlobalAutocorrelation.R
 \name{B1_GlobalAutocorrelation}
 \alias{B1_GlobalAutocorrelation}
-\title{Global Spatial Autocorrelation Analysis (Moran's I)}
+\title{Global Spatial Autocorrelation (Moran's I) and Diagnostic Mapping}
 \usage{
 B1_GlobalAutocorrelation(
-  map_data,
+  spatial_data,
   var_col,
   nsim = 999,
-  auto_colour = "YlOrRd",
-  color_palette = c("#FFF5F0", "#FB6A4A", "#CB181D", "#67000D"),
+  color_palette = "YlOrRd",
   reverse_palette = FALSE,
-  show_legend = TRUE,
-  legend_pos = "bottomright",
+  legend = TRUE,
+  legend_position = "bottomleft",
   legend_orientation = "vertical",
-  common_legend = FALSE,
   footer = TRUE,
   save_plot = FALSE,
-  res = 300,
-  save_prefix = "AFRIN"
+  save_prefix = "B1_Morans'I",
+  res = 300
 )
 }
 \arguments{
-\item{map_data}{An \code{sf} spatial data frame containing polygons.}
+\item{spatial_data}{An object of class 'sf' containing polygon geometries.}
 
-\item{var_col}{Character string. The column name containing the clinical/variable of interest.}
+\item{var_col}{Character. The column name of the variable to analyze.}
 
-\item{nsim}{Integer. Number of Monte Carlo permutations. Default is 999.}
+\item{nsim}{Numeric. Number of Monte Carlo permutations for p-value (default: 999).}
 
-\item{auto_colour}{Character string. Name of an RColorBrewer palette. Default is "YlOrRd". If \code{NULL}, uses manual color_palette.}
+\item{color_palette}{Character. RColorBrewer palette for the Spatial Lag Map (default: "YlOrRd").}
 
-\item{color_palette}{Character vector of manual colors. Used if auto_colour is \code{NULL}.}
+\item{reverse_palette}{Logical. If TRUE, reverses the color palette vector.}
 
-\item{reverse_palette}{Logical. If \code{TRUE}, reverses the color palette array. Default is \code{FALSE}.}
+\item{legend}{Logical. If TRUE, displays legends on applicable plots.}
 
-\item{show_legend}{Logical. If \code{TRUE}, displays a legend on the maps. Default is \code{TRUE}.}
+\item{legend_position}{Character. Legend position (default: "bottom").}
 
-\item{legend_pos}{Character string. Position of the legend. Default is "bottomright".}
+\item{legend_orientation}{Character. "vertical" or "horizontal" for legend layout.}
 
-\item{legend_orientation}{Character string. "vertical" or "horizontal". Default is "vertical".}
+\item{footer}{Logical. If TRUE, adds a reproducible footer at the bottom center.}
 
-\item{common_legend}{Logical. If \code{TRUE}, centers a unified legend across the layout. Default is \code{FALSE}.}
+\item{save_plot}{Logical. If TRUE, saves the 4 diagnostic plots as high-resolution 4K PNGs.}
 
-\item{footer}{Logical. If \code{TRUE}, adds a reproducible timestamp footer. Default is \code{TRUE}.}
+\item{save_prefix}{Character. Prefix for output files.}
 
-\item{save_plot}{Logical. If \code{TRUE}, exports TWO plots in locked 4K resolution (3840x2160). Default is \code{FALSE}.}
-
-\item{res}{Numeric. Resolution (DPI) for the exported plots. Default is 300.}
-
-\item{save_prefix}{Character string. Prefix for the exported file names. Default is "AFRIN".}
+\item{res}{Numeric. Resolution in DPI for the saved plot (default is 300).}
 }
 \value{
-A list containing Moran's I statistics, p-values, and spatial lag values.
-Generates two 4K visualizations in the active graphics device.
+A list containing the Moran's I statistic, p-value, and the original
+'sf' object appended with Spatial_Lag, Z_Score, and Moran_Quadrant invisibly.
 }
 \description{
-Conducts rigorous Global Spatial Autocorrelation testing using Moran's I
-and Monte Carlo simulations. Generates two highly detailed 1x2 4K panels:
-Plot 1: Moran Scatterplot and Monte Carlo Permutation Density Plot.
-Plot 2: Spatial Connectivity (Weights) Network and Spatial Lag Choropleth Map.
-Essential for identifying infectious disease clustering, poverty contagion,
-or healthcare fraud (e.g., BPJS moral hazard clustering).
+Computes Global Moran's I using pure Base R matrix algebra to detect
+spatial clustering (High-High/Low-Low) or dispersion. It generates a 4-stage
+diagnostic profile including Spatial Connectivity Network, Moran Scatterplot,
+Monte Carlo Permutation Density, and Spatial Lag Map. It uses Queen contiguity
+weights directly derived from 'sf' geometries.
 }
 \examples{
 \dontrun{
-  # Analyzing spatial clustering with a horizontal legend
-  results <- B1_GlobalAutocorrelation(
-    map_data = nc,
-    var_col = "SID74",
-    nsim = 999,
-    legend_orientation = "horizontal",
-    common_legend = TRUE,
-    save_plot = FALSE
-  )
+# Example: Analyzing spatial clustering of BPJS Claims / Stunting
+moran_results <- B1_GlobalAutocorrelationMoranI(
+  spatial_data = df_jateng,
+  var_col = "MALARIA",
+  nsim = 999,
+  save_plot = TRUE,
+  save_prefix = "B1_Morans'I"
+)
+
+# Print Empirical Moran's I and p-value
+print(moran_results$Morans_I)
+print(moran_results$p_value)
 }
 }
